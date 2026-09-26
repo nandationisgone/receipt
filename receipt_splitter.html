@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Receipt Splitter</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #bac393;
+    --surface: #fdfcf8;
+    --border: #d8d3c8;
+    --text: #1a1814;
+    --muted: #7a756b;
+    --accent: #c84b2f;
+    --accent-light: #f5e8e4;
+    --split-bg: #e8f0e4;
+    --split-text: #3a6b2a;
+    --mono: 'DM Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 2rem 1rem 4rem;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 560px;
+  }
+
+  header {
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1.5px solid var(--text);
+  }
+
+  header h1 {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+
+  header p {
+    font-size: 28px;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .tax-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1.5rem;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  .tax-row label {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    flex: 1;
+  }
+
+  .tax-row input {
+    width: 80px;
+    font-family: var(--mono);
+    font-size: 15px;
+    text-align: right;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    outline: none;
+    font-weight: 500;
+  }
+
+  .tax-row span {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .add-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 1.5rem;
+  }
+
+  .add-row input[type="text"] {
+    flex: 2;
+    padding: 10px 12px;
+    font-family: var(--sans);
+    font-size: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .add-row input[type="number"] {
+    flex: 1;
+    padding: 10px 12px;
+    font-family: var(--mono);
+    font-size: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .add-row input:focus { border-color: var(--text); }
+
+  .add-row button {
+    padding: 10px 16px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    background: var(--text);
+    color: var(--bg);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s;
+  }
+
+  .add-row button:hover { opacity: 0.8; }
+  .add-row button:active { transform: scale(0.98); }
+
+  .hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 1rem;
+    font-family: var(--mono);
+  }
+
+  .item-list { margin-bottom: 2rem; }
+
+  .empty {
+    font-size: 14px;
+    color: var(--muted);
+    padding: 1.5rem 0;
+    text-align: center;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    font-family: var(--mono);
+    letter-spacing: 0.03em;
+  }
+
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    transition: background 0.15s;
+  }
+
+  .item.is-split {
+    background: var(--split-bg);
+    border-color: #b5d4a8;
+  }
+
+  .item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--split-text);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .item-name {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  .item.is-split .item-name { color: var(--split-text); }
+
+  .split-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--split-text);
+    background: #c8e6c0;
+    padding: 2px 7px;
+    border-radius: 20px;
+    flex-shrink: 0;
+  }
+
+  .item-price {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--muted);
+    min-width: 58px;
+    text-align: right;
+  }
+
+  .item.is-split .item-price { color: var(--split-text); }
+
+  .del-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1;
+    padding: 0 2px;
+    transition: color 0.15s;
+  }
+
+  .del-btn:hover { color: var(--accent); }
+
+  .summary {
+    border-top: 1.5px solid var(--text);
+    padding-top: 1.5rem;
+  }
+
+  .summary-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+
+  .card-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .card-amount {
+    font-family: var(--mono);
+    font-size: 28px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+
+  .card-sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .grand-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--text);
+    border-radius: 8px;
+    color: var(--bg);
+  }
+
+  .grand-total span:first-child {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+
+  .grand-total span:last-child {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>Fuck Nigga · Receipt Splitter</h1>
+    <p>Who owes what,<br>taxes included.</p>
+  </header>
+
+  <div class="tax-row">
+    <label>Tax rate</label>
+    <input type="number" id="taxRate" value="5.3" min="0" max="20" step="0.1" />
+    <span>%</span>
+  </div>
+
+  <div class="add-row">
+    <input type="text" id="itemName" placeholder="Item name" />
+    <input type="number" id="itemPrice" placeholder="$0.00" min="0" step="0.01" />
+    <button onclick="addItem()">+ Add</button>
+  </div>
+
+  <p class="hint">☑ Check an item to split it 50/50 with your roommate</p>
+
+  <div class="item-list" id="itemList"></div>
+
+  <div class="summary" id="summary" style="display:none;">
+    <p class="summary-label">Breakdown</p>
+    <div class="cards">
+      <div class="card">
+        <p class="card-title">You owe</p>
+        <p class="card-amount" id="myTotal">$0.00</p>
+        <p class="card-sub" id="myBreak"></p>
+      </div>
+      <div class="card">
+        <p class="card-title">Roommate owes</p>
+        <p class="card-amount" id="rmTotal">$0.00</p>
+        <p class="card-sub" id="rmBreak"></p>
+      </div>
+    </div>
+    <div class="grand-total">
+      <span>Receipt total w/ tax</span>
+      <span id="grandTotal">$0.00</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let items = [], nextId = 1;
+
+  function addItem() {
+    const n = document.getElementById('itemName');
+    const p = document.getElementById('itemPrice');
+    const name = n.value.trim();
+    const price = parseFloat(p.value);
+    if (!name || isNaN(price) || price <= 0) return;
+    items.push({ id: nextId++, name, price, split: false });
+    n.value = ''; p.value = ''; n.focus();
+    render();
+  }
+
+  document.getElementById('itemName').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('itemPrice').focus(); });
+  document.getElementById('itemPrice').addEventListener('keydown', e => { if (e.key === 'Enter') addItem(); });
+  document.getElementById('taxRate').addEventListener('input', render);
+
+  function toggleSplit(id) { const i = items.find(x => x.id === id); if (i) { i.split = !i.split; render(); } }
+  function removeItem(id) { items = items.filter(x => x.id !== id); render(); }
+
+  function fmt(n) { return '$' + n.toFixed(2); }
+
+  function render() {
+    const list = document.getElementById('itemList');
+    const summary = document.getElementById('summary');
+
+    if (!items.length) {
+      list.innerHTML = '<div class="empty">no items yet</div>';
+      summary.style.display = 'none';
+      return;
+    }
+
+    list.innerHTML = items.map(item => `
+      <div class="item ${item.split ? 'is-split' : ''}">
+        <input type="checkbox" ${item.split ? 'checked' : ''} onchange="toggleSplit(${item.id})" />
+        <span class="item-name">${item.name}</span>
+        ${item.split ? '<span class="split-tag">÷2</span>' : ''}
+        <span class="item-price">${fmt(item.price)}</span>
+        <button class="del-btn" onclick="removeItem(${item.id})" aria-label="Remove">×</button>
+      </div>
+    `).join('');
+
+    const tax = parseFloat(document.getElementById('taxRate').value) / 100 || 0;
+    let mine = 0, shared = 0;
+    items.forEach(i => { if (i.split) shared += i.price; else mine += i.price; });
+
+    const mySub = mine + shared / 2;
+    const rmSub = shared / 2;
+    const grandSub = mine + shared;
+
+    document.getElementById('myTotal').textContent = fmt(mySub * (1 + tax));
+    document.getElementById('rmTotal').textContent = fmt(rmSub * (1 + tax));
+    document.getElementById('grandTotal').textContent = fmt(grandSub * (1 + tax));
+    document.getElementById('myBreak').textContent = fmt(mySub) + ' + ' + fmt(mySub * tax) + ' tax';
+    document.getElementById('rmBreak').textContent = fmt(rmSub) + ' + ' + fmt(rmSub * tax) + ' tax';
+
+    summary.style.display = 'block';
+  }
+
+  render();
+</script>
+</body>
+</html>
